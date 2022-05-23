@@ -11,9 +11,9 @@
 //
 // TODO:Student Information
 //
-const char *studentName = "NAME";
-const char *studentID   = "PID";
-const char *email       = "EMAIL";
+const char *studentName = "Isamu Arthur Poy";
+const char *studentID   = "A59011424";
+const char *email       = "ipoy@ucsd.edu";
 
 //------------------------------------//
 //        Cache Configuration         //
@@ -59,9 +59,39 @@ uint64_t l2cachePenalties; // L2$ penalties
 //TODO: Add your Cache data structures here
 //
 
+// !! take care of corner cases for null pointers !!
+// structure: block 
+typedef struct block{
+  uint32_t tag; 
+  struct block *before;
+  struct block *after;
+} block;
+
+// structure: set 
+typedef struct set{
+  int capacity;
+  block *front, *back;
+} set; 
+
+// functions: LRU replacement...
+// ---> after a block is hit/accessed send it to the back
+// ---> essentially, whatever is in the back is the most recently used
+// ---> the Least Recently Used (LRU) block will be at the front
+// ---> LRU replacement occurs when the cache is full
+// ---> scenario 1: the cache is not full but you get a miss in an occupied block, so you replace
+// ---> scenario 2: the cache is not full and you get a miss in an empty block, so you simply add
+// ---> scenario 3: the cache is full, so you need to pop either end (whichever has the LRU block) and replace accordingly
+
+// TODO --> make sure that each block has a valid bit
+// without the valid bit, we have no way of telling whether a block can be overwritten or not with a new block's info
+
 //------------------------------------//
 //          Cache Functions           //
 //------------------------------------//
+
+set *icache;
+set *dcache;
+set *l2cache;
 
 // Initialize the Cache Hierarchy
 //
@@ -82,6 +112,29 @@ init_cache()
   //
   //TODO: Initialize Cache Simulator Data Structures
   //
+
+  icache = (set*)malloc(sizeof(set)*icacheSets);
+  dcache = (set*)malloc(sizeof(set)*dcacheSets);
+  l2cache = (set*)malloc(sizeof(set)*l2cacheSets);
+
+  for(int i = 0; i < icacheSets; i++){
+    icache[i].capacity = 0;
+    icache[i].front = NULL;
+    icache[i].back = NULL;
+  }
+
+  for(int i = 0; i < dcacheSets; i++){
+    dcache[i].capacity = 0;
+    dcache[i].front = NULL;
+    dcache[i].back = NULL;
+  }
+
+  for(int i = 0; i < l2cacheSets; i++){
+    l2cache[i].capacity = 0;
+    l2cache[i].front = NULL;
+    l2cache[i].back = NULL;
+  }
+  
 }
 
 // Perform a memory access through the icache interface for the address 'addr'
