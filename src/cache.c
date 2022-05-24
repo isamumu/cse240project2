@@ -61,17 +61,18 @@ uint64_t l2cachePenalties; // L2$ penalties
 
 // !! take care of corner cases for null pointers !!
 // structure: block 
-typedef struct block{
+typedef struct Block{
   uint32_t tag; 
-  struct block *before;
-  struct block *after;
-} block;
+  struct Block *prev;
+  struct Block *next;
+} Block;
 
 // structure: set 
-typedef struct set{
-  int capacity;
-  block *front, *back;
-} set; 
+typedef struct Set{
+  uint32_t count;
+  Block *front;
+  Block *back;
+} Set; 
 
 // functions: LRU replacement...
 // ---> after a block is hit/accessed send it to the back
@@ -89,9 +90,56 @@ typedef struct set{
 //          Cache Functions           //
 //------------------------------------//
 
-set *icache;
-set *dcache;
-set *l2cache;
+Set *icache;
+Set *dcache;
+Set *l2cache;
+
+// add new elements to the front, add old ones to the back
+int isEmpty(Set *set){
+  return set->front == NULL;
+}
+
+// helper: create a block for a set (if set isn't full)
+Block* createBlock(uint32_t tag){
+  Block *newBlock = (Block*)malloc(sizeof(Block));
+  newBlock->next = NULL;
+  newBlock->prev = NULL;
+  newBlock->tag = tag;
+}
+
+// helper: remove a back block from queue
+void pop_block(Set *set){
+  if(isEmpty(set))
+    return;
+  
+  if(set->front == set->back)
+    set->front = NULL;
+
+  Block *temp = set->back;
+  set->back = set->back->prev;
+
+  if(set->back != NULL)
+    set->back->next = NULL;
+  
+  free(temp);
+  set->count -= 1;
+}
+
+// helper: insert a block to the front
+void insert_block(Set *set, uint32_t tag, uint32_t max){
+  if(set->count == max)
+    pop_block(set);
+
+  Block *temp = createBlock(tag);
+  temp->next = set->front;
+
+  if(isEmpty(set)){
+    set->front = temp;
+    set->back = set->front;
+  }
+
+  set->count += 1;
+}
 
 // Initialize the Cache Hierarchy
 //
@@ -113,28 +161,27 @@ init_cache()
   //TODO: Initialize Cache Simulator Data Structures
   //
 
-  icache = (set*)malloc(sizeof(set)*icacheSets);
-  dcache = (set*)malloc(sizeof(set)*dcacheSets);
-  l2cache = (set*)malloc(sizeof(set)*l2cacheSets);
+  icache = (Set*)malloc(sizeof(Set)*icacheSets);
+  dcache = (Set*)malloc(sizeof(Set)*dcacheSets);
+  l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
 
   for(int i = 0; i < icacheSets; i++){
-    icache[i].capacity = 0;
+    icache[i].count = 0;
     icache[i].front = NULL;
     icache[i].back = NULL;
   }
 
   for(int i = 0; i < dcacheSets; i++){
-    dcache[i].capacity = 0;
+    dcache[i].count = 0;
     dcache[i].front = NULL;
     dcache[i].back = NULL;
   }
 
   for(int i = 0; i < l2cacheSets; i++){
-    l2cache[i].capacity = 0;
+    l2cache[i].count = 0;
     l2cache[i].front = NULL;
     l2cache[i].back = NULL;
   }
-  
 }
 
 // Perform a memory access through the icache interface for the address 'addr'
@@ -146,6 +193,8 @@ icache_access(uint32_t addr)
   //
   //TODO: Implement I$
   //
+
+
   return memspeed;
 }
 
