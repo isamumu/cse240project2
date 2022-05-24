@@ -191,7 +191,7 @@ void searchAndEvict(uint32_t addr, int isData){
     for(int i = 0; i < num_blocks; i++){
       if(temp->tag == addr_tag){
         // evict from dcache
-        evictTarget(&(dcache[i]), 1);
+        evictTarget(&(dcache[i]), addr_tag);
       } else{
         temp = temp->next; // update for checking the next recent block
       }
@@ -205,7 +205,7 @@ void searchAndEvict(uint32_t addr, int isData){
     for(int i = 0; i < num_blocks; i++){
       if(temp->tag == addr_tag){
         // evict from icache
-        evictTarget(&(icache[i]), 0);
+        evictTarget(&(icache[i]), addr_tag);
       } else{
         temp = temp->next; // update for checking the next recent block
       }
@@ -400,20 +400,23 @@ l2cache_access(uint32_t addr)
   } else{
     if(inclusive){
       // target to evict 
-      Block *target = l2cache[addr_index].back;
+      Block *target = l2cache[addr_index].back; // note that back of the L2 is a different address
       uint32_t tag = target->tag;
-      uint32_t dittoAddr = ((tag << addr_index) + addr_index) << offsetBitsNum;
+      uint32_t dittoAddr = ((tag << addr_index) + addr_index) << offsetBitsNum; // reconstructed address
 
       // evict from dcache the LRU from l2
-    
+      searchAndEvict(dittoAddr, 1);
       // evict from icache the LRU from l2
-      
+      searchAndEvict(dittoAddr, 0);
       // evict from l2cache AND insert to l2cache
+      pop_block(&(l2cache[addr_index]));
+      insert_block(&(l2cache[addr_index]), addr_tag);
     } else{
-
+      // otherwise just perform LRU on L2 cache
+      pop_block(&(l2cache[addr_index]));
+      insert_block(&(l2cache[addr_index]), addr_tag);
     }
   }
-  
 
   return (l2cacheHitTime + memspeed);
 }
