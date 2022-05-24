@@ -150,6 +150,69 @@ void insert_block(Set *set, uint32_t tag){
   set->count += 1;
 }
 
+void evictTarget(Set *set, uint32_t tag){
+  Block *temp = set->front;
+  Block *prev = NULL;
+  
+  // if front
+  if(set->front->tag == tag){
+    set->front = temp->next;
+    free(set->front);
+    return;
+  } 
+  // if middle
+  while((temp->tag != tag) && (temp != NULL)){
+    prev = temp;
+    temp = temp->next;
+  }
+
+  // means nothing was found to evict in L1
+  if(temp == NULL)
+    return;
+  
+  // at this point something was found
+  prev = temp->next;
+  free(temp);
+}
+
+// 1: dcache 0: icache
+void searchAndEvict(uint32_t addr, int isData){
+  uint32_t addr_tag;
+  uint32_t addr_index;
+  int num_blocks;
+  Block *temp;
+
+  if(isData){
+    addr_tag = addr >> (dIndexNum + offsetBitsNum);
+    addr_index = (addr >> offsetBitsNum) & dIndexFilter;
+    num_blocks = dcache[addr_index].count;
+    temp = dcache[addr_index].front;
+
+    for(int i = 0; i < num_blocks; i++){
+      if(temp->tag == addr_tag){
+        // evict from dcache
+        evictTarget(&(dcache[i]), 1);
+      } else{
+        temp = temp->next; // update for checking the next recent block
+      }
+    }
+  } else{
+    addr_tag = addr >> (iIndexNum + offsetBitsNum);
+    addr_index = (addr >> offsetBitsNum) & iIndexFilter;
+    num_blocks = icache[addr_index].count;
+    temp = icache[addr_index].front;
+
+    for(int i = 0; i < num_blocks; i++){
+      if(temp->tag == addr_tag){
+        // evict from icache
+        evictTarget(&(dcache[i]), 0);
+      } else{
+        temp = temp->next; // update for checking the next recent block
+      }
+    }
+  }
+}
+
 // Initialize the Cache Hierarchy
 //
 void
@@ -251,7 +314,7 @@ icache_access(uint32_t addr)
     insert_block(&(icache[addr_index]), addr_tag);
   }
   
-  return l2_time + icacheHitTime;
+  return (l2_time + icacheHitTime);
 }
 
 // Perform a memory access through the dcache interface for the address 'addr'
@@ -296,7 +359,7 @@ dcache_access(uint32_t addr)
     insert_block(&(dcache[addr_index]), addr_tag);
   }
   
-  return l2_time + dcacheHitTime;
+  return (l2_time + dcacheHitTime);
 }
 
 // Perform a memory access to the l2cache for the address 'addr'
@@ -309,9 +372,48 @@ l2cache_access(uint32_t addr)
   uint32_t addr_tag = addr >> (l2IndexNum + offsetBitsNum);
   uint32_t addr_index = (addr >> offsetBitsNum) & l2IndexFilter;
 
-  // if exclusive
+  Block *temp = l2cache[addr_index].front;
+  int num_blocks = l2cache[addr_index].count;
 
-  // if inclusive
+  // check if we go straight to l2
+  if(l2cacheSets == 0)
+    return memspeed;
+  
+  // we know for sure icache is being ref now
+  l2cacheRefs += 1;
 
-  return memspeed;
+  // loop through the cache related to the index AND look for a hit
+  for(int i = 0; i < num_blocks; i++){
+    if(temp->tag == addr_tag){
+      return l2cacheHitTime;
+    } else{
+      temp = temp->next; // update for checking the next recent block
+    }
+  }
+
+  l2cacheMisses += 1;
+  l2cachePenalties += memspeed; // penalty is a subset of access time
+
+  // if inclusive (if we evict from L2 we must also evict from L1)
+  if(l2cache[addr_index].count < l2cacheAssoc){
+    insert_block(&(l2cache[addr_index]), addr_tag);
+  } else{
+    if(inclusive){
+      // target to evict 
+      Block *target = l2cache[addr_index].back;
+      uint32_t tag = target->tag;
+      uint32_t dittoAddr = ((tag << addr_index) + addr_index) << offsetBitsNum;
+
+      // evict from dcache the LRU from l2
+    
+      // evict from icache the LRU from l2
+      
+      // evict from l2cache AND insert to l2cache
+    } else{
+
+    }
+  }
+  
+
+  return (l2cacheHitTime + memspeed);
 }
