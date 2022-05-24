@@ -137,9 +137,7 @@ void pop_block(Set *set){
 }
 
 // helper: insert a block to the front
-void insert_block(Set *set, uint32_t tag, uint32_t max){
-  if(set->count == max)
-    pop_block(set);
+void insert_block(Set *set, uint32_t tag){
 
   Block *temp = createBlock(tag);
   temp->next = set->front;
@@ -220,8 +218,40 @@ icache_access(uint32_t addr)
   // isolate tag and index values
   uint32_t addr_tag = addr >> (iIndexNum + offsetBitsNum);
   uint32_t addr_index = (addr >> offsetBitsNum) & iIndexFilter;
+  Block *temp = icache[addr_index].front;
+  int num_blocks = icache[addr_index].count;
 
-  return memspeed;
+  // check if we go straight to l2
+  if(icacheSets == 0)
+    return l2cache_access(addr);
+  
+  // we know for sure icache is being ref now
+  icacheRefs += 1;
+
+  // loop through the cache related to the index AND look for a hit
+  for(int i = 0; i < num_blocks; i++){
+    if(temp->tag == addr_tag){
+      return icacheHitTime;
+    } else{
+      temp = temp->next; // update for checking the next recent block
+    }
+  }
+
+  // either way, it is a miss now
+  uint32_t l2_time = l2cache_access(addr);
+
+  icacheMisses += 1;
+  icachePenalties += l2_time; // penalty is a subset of access time
+
+  // insert the block to the set if it is not full
+  if(num_blocks < icacheAssoc){
+    insert_block(&(icache[addr_index]), addr_tag);
+  } else{ // if full, pop back and insert to front
+    pop_block(&(icache[addr_index]));
+    insert_block(&(icache[addr_index]), addr_tag);
+  }
+  
+  return l2_time + icacheHitTime;
 }
 
 // Perform a memory access through the dcache interface for the address 'addr'
@@ -233,8 +263,40 @@ dcache_access(uint32_t addr)
   // isolate tag and index values
   uint32_t addr_tag = addr >> (dIndexNum + offsetBitsNum);
   uint32_t addr_index = (addr >> offsetBitsNum) & dIndexFilter;
+  Block *temp = dcache[addr_index].front;
+  int num_blocks = dcache[addr_index].count;
 
-  return memspeed;
+  // check if we go straight to l2
+  if(dcacheSets == 0)
+    return l2cache_access(addr);
+  
+  // we know for sure icache is being ref now
+  dcacheRefs += 1;
+
+  // loop through the cache related to the index AND look for a hit
+  for(int i = 0; i < num_blocks; i++){
+    if(temp->tag == addr_tag){
+      return dcacheHitTime;
+    } else{
+      temp = temp->next; // update for checking the next recent block
+    }
+  }
+
+  // either way, it is a miss now
+  uint32_t l2_time = l2cache_access(addr);
+
+  dcacheMisses += 1;
+  dcachePenalties += l2_time; // penalty is a subset of access time
+
+  // insert the block to the set if it is not full
+  if(num_blocks < dcacheAssoc){
+    insert_block(&(dcache[addr_index]), addr_tag);
+  } else{ // if full, pop back and insert to front
+    pop_block(&(dcache[addr_index]));
+    insert_block(&(dcache[addr_index]), addr_tag);
+  }
+  
+  return l2_time + dcacheHitTime;
 }
 
 // Perform a memory access to the l2cache for the address 'addr'
@@ -246,6 +308,10 @@ l2cache_access(uint32_t addr)
   // isolate tag and index values
   uint32_t addr_tag = addr >> (l2IndexNum + offsetBitsNum);
   uint32_t addr_index = (addr >> offsetBitsNum) & l2IndexFilter;
+
+  // if exclusive
+
+  // if inclusive
 
   return memspeed;
 }
