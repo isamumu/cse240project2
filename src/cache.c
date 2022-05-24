@@ -205,7 +205,7 @@ void searchAndEvict(uint32_t addr, int isData){
     for(int i = 0; i < num_blocks; i++){
       if(temp->tag == addr_tag){
         // evict from icache
-        evictTarget(&(dcache[i]), 0);
+        evictTarget(&(icache[i]), 0);
       } else{
         temp = temp->next; // update for checking the next recent block
       }
