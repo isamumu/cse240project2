@@ -95,17 +95,9 @@ Set *icache;
 Set *dcache;
 Set *l2cache;
 
-uint16_t iTagFilter;
-uint16_t dTagFilter;
-uint16_t l2TagFilter;
-
 uint16_t iIndexFilter;
 uint16_t dIndexFilter;
 uint16_t l2IndexFilter;
-
-uint16_t iOffsetFilter;
-uint16_t dOffsetFilter;
-uint16_t l2OffsetFilter;
 
 uint16_t iIndexNum;
 uint16_t dIndexNum;
@@ -187,28 +179,31 @@ init_cache()
   offsetBitsNum = log2(blocksize);
   // handle icache bits
   iIndexNum = log2(icacheSets);
-
+  iIndexFilter = ((1 << iIndexNum) - 1);
 
   // handle dcache bits
   dIndexNum = log2(dcacheSets);
-
-
+  dIndexFilter = ((1 << dIndexNum) - 1);
+ 
   // handle l2cache bits
   l2IndexNum = log2(l2cacheSets);
+  l2IndexFilter = ((1 << l2IndexNum) - 1);
 
-
+  // init icache
   for(int i = 0; i < icacheSets; i++){
     icache[i].count = 0;
     icache[i].front = NULL;
     icache[i].back = NULL;
   }
 
+  // init dcache
   for(int i = 0; i < dcacheSets; i++){
     dcache[i].count = 0;
     dcache[i].front = NULL;
     dcache[i].back = NULL;
   }
 
+  // init l2cache
   for(int i = 0; i < l2cacheSets; i++){
     l2cache[i].count = 0;
     l2cache[i].front = NULL;
@@ -222,10 +217,9 @@ init_cache()
 uint32_t
 icache_access(uint32_t addr)
 {
-  //
-  //TODO: Implement I$
-  //
-
+  // isolate tag and index values
+  uint32_t addr_tag = addr >> (iIndexNum + offsetBitsNum);
+  uint32_t addr_index = (addr >> offsetBitsNum) & iIndexFilter;
 
   return memspeed;
 }
@@ -236,9 +230,10 @@ icache_access(uint32_t addr)
 uint32_t
 dcache_access(uint32_t addr)
 {
-  //
-  //TODO: Implement D$
-  //
+  // isolate tag and index values
+  uint32_t addr_tag = addr >> (dIndexNum + offsetBitsNum);
+  uint32_t addr_index = (addr >> offsetBitsNum) & dIndexFilter;
+
   return memspeed;
 }
 
@@ -248,8 +243,9 @@ dcache_access(uint32_t addr)
 uint32_t
 l2cache_access(uint32_t addr)
 {
-  //
-  //TODO: Implement L2$
-  //
+  // isolate tag and index values
+  uint32_t addr_tag = addr >> (l2IndexNum + offsetBitsNum);
+  uint32_t addr_index = (addr >> offsetBitsNum) & l2IndexFilter;
+
   return memspeed;
 }
