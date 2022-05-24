@@ -7,6 +7,7 @@
 //========================================================//
 
 #include "cache.h"
+#include <math.h> // ADDED
 
 //
 // TODO:Student Information
@@ -94,6 +95,24 @@ Set *icache;
 Set *dcache;
 Set *l2cache;
 
+uint16_t iTagFilter;
+uint16_t dTagFilter;
+uint16_t l2TagFilter;
+
+uint16_t iIndexFilter;
+uint16_t dIndexFilter;
+uint16_t l2IndexFilter;
+
+uint16_t iOffsetFilter;
+uint16_t dOffsetFilter;
+uint16_t l2OffsetFilter;
+
+uint16_t iIndexNum;
+uint16_t dIndexNum;
+uint16_t l2IndexNum;
+
+uint16_t offsetBitsNum;
+
 // add new elements to the front, add old ones to the back
 int isEmpty(Set *set){
   return set->front == NULL;
@@ -164,6 +183,19 @@ init_cache()
   icache = (Set*)malloc(sizeof(Set)*icacheSets);
   dcache = (Set*)malloc(sizeof(Set)*dcacheSets);
   l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
+
+  offsetBitsNum = log2(blocksize);
+  // handle icache bits
+  iIndexNum = log2(icacheSets);
+
+
+  // handle dcache bits
+  dIndexNum = log2(dcacheSets);
+
+
+  // handle l2cache bits
+  l2IndexNum = log2(l2cacheSets);
+
 
   for(int i = 0; i < icacheSets; i++){
     icache[i].count = 0;
