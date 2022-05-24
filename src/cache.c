@@ -119,56 +119,89 @@ Block* createBlock(uint32_t tag){
 
 // helper: remove a back block from queue
 void pop_block(Set *set){
-  if(set->front == NULL)
+  if(set->back == NULL)
     return;
 
-  printf("yes\n");
-  if(set->front == set->back){
+  //printf("yes\n");
+  // if only one is there set both front and back to null
+  if(set->front == set->back)
     set->front = NULL;
-    set->back = NULL;
-  }
 
-  printf("ok\n");
-  // Block *tempo = set->front;
-  // for(int i = 0; i < set->count; i++){
-  //   printf("%u\n", tempo->tag);
-  //   tempo = tempo->next;
-  // }
+  Block *tempo = set->front;
+  // printf("ok\n");
+  printf("before pop:\n");
+  for(int i = 0; i < set->count; i++){
+    printf("%u\n", tempo->tag);
+    tempo = tempo->next;
+  }
   if(set->back == NULL)
     printf("holla\n");
-
+  
+  printf("this is the front: %u\n", set->front->tag);
+  printf("this is the back: %u\n", set->back->tag);
+  
   Block *prev= set->back->prev;
-  printf("uh ok\n");
+  //printf("uh ok\n");
   Block *temp = set->back;
   set->back = prev;
 
-  printf("cool\n");
-  if(set->back != NULL)
+  //printf("cool\n");
+  if(set->back)
     set->back->next = NULL;
   
   free(temp);
+
+  
+  if(set->back == NULL)
+    printf("holla\n");
   set->count -= 1;
+
+  printf("after pop:\n");
+  tempo = set->front;
+  for(int i = 0; i < set->count; i++){
+    printf("no problem: ");
+    printf("%u\n", tempo->tag);
+    tempo = tempo->next;
+  }
+  printf("done popping\n");
 }
 
 // helper: insert a block to the front
 void insert_block(Set *set, uint32_t tag, uint32_t assoc){
 
   Block *temp = createBlock(tag);
-  printf("created block entity\n");
+  //printf("created block entity\n");
   temp->next = set->front;
 
-  printf("temp: %u\n", temp->tag);
+  Block *tempo = set->front;
+  printf("before insert:\n");
+  for(int i = 0; i < set->count; i++){
+    printf("%u\n", tempo->tag);
+    tempo = tempo->next;
+  }
+
+  //printf("temp: %u\n", temp->tag);
   // printf("insertion completed\n");
-  if(set->front == NULL){
+  if(set->back == NULL){
     set->front = temp;
-    set->back = set->front;
+    set->back = temp;
+    //printf("added brand new!!!!!!! %u\n", set->front->tag);
   } else{
     set->front->prev = temp;
     set->front = temp;
+    //printf("add on - - - - - \n");
+    //printf("new back is: %u\n", set->back->tag);
   }
 
   if(set->count < assoc)
     set->count += 1;
+
+  tempo = set->front;
+  printf("new with added:\n");
+  for(int i = 0; i < set->count; i++){
+    printf("%u\n", tempo->tag);
+    tempo = tempo->next;
+  }
   // printf("incremented counter\n");
 }
 
@@ -179,24 +212,31 @@ void evictTarget(Set *set, uint32_t tag){
   
   // if front or very back
   if(set->front->tag == tag){
+    printf("single element\n");
     if(set->count == 1){
       set->front == NULL;
       set->back == NULL;
     } else{
       set->front = temp->next;
+      set->front->prev = NULL;
     } 
+    //printf("single element evicted = = = = = = = =\n");
     free(temp);
     return;
   } else if(set->back->tag == tag){
+    printf("here\n");
     Block *dummy; 
     dummy = set->back;
     set->back = set->back->prev;
+    set->back->next = NULL;
     free(dummy);
     return;
   }
   // if middle
-  int count = 1;
-  while((temp->tag != tag) && (temp != NULL)){
+  printf("no here\n");
+  while(temp != NULL){
+    if(temp->tag == tag)
+      break;
     prev = temp;
     temp = temp->next;
   }
@@ -207,7 +247,7 @@ void evictTarget(Set *set, uint32_t tag){
   
   // at this point something was found
   
-  prev = temp->next;
+  prev->next = temp->next;
   free(temp);
 }
 
@@ -337,17 +377,18 @@ icache_access(uint32_t addr)
   // printf("search for hit in icache\n");
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
-    printf("enter before\n");
+    //printf("enter before\n");
     if(temp->tag == addr_tag){
+      //printf("returnicache\n");
       return icacheHitTime;
     } else{
-      printf("update ");
+      //printf("update ");
       temp = temp->next; // update for checking the next recent block
-      printf("successful\n");
+      //printf("successful\n");
     }
   }
 
-  printf("missed: go into l2\n");
+  //printf("missed: go into l2\n");
   // either way, it is a miss now
   uint32_t l2_time = l2cache_access(addr);
 
@@ -389,40 +430,43 @@ dcache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   //printf("search for hit in dcache\n");
   for(int i = 0; i < num_blocks; i++){
-    // printf("cycle %d the culprit ->\n", i);
+    //printf("cycle %d out of %d the culprit ->\n", i, num_blocks-1);
+    //printf("tag at index %u\n", addr_index);
+    //printf("cycle %d and up to cycle %d\n", i, num_blocks - 1);
+    //printf("tag = %u\n", temp->tag);
     if(temp->tag == addr_tag){
       // printf("is not this\n");
       return dcacheHitTime;
     } else{
-      // printf("cycle %d and up to cycle %d\n", i, num_blocks - 1);
+      //printf("cycle %d and up to cycle %d\n", i, num_blocks - 1);
       temp = temp->next; // update for checking the next recent block
       //printf("no its normal nvm: %u\n", temp->tag);
     }
   }
 
   // either way, it is a miss now
-  printf("it's the L2!!\n");
+  //printf("it's the L2!!\n");
   uint32_t l2_time = l2cache_access(addr);
-  printf("nevermind!\n");
+  //printf("nevermind!\n");
 
   dcacheMisses += 1;
   dcachePenalties += l2_time; // penalty is a subset of access time
-  printf("huh\n");
+  //printf("huh\n");
 
   // insert the block to the set if it is not full
   if(num_blocks < dcacheAssoc){
-    printf("about to insert a block\n");
+    //printf("about to insert a block at index %u\n", addr_index);
     insert_block(&(dcache[addr_index]), addr_tag, dcacheAssoc);
-    printf("dcache insertion successful\n");
+    //printf("dcache insertion successful at index %u\n", addr_index);
   } else{ // if full, pop back and insert to front
-    printf("about to pop: numBlocks=%d and assoc=%d\n", num_blocks, dcacheAssoc);
+    //printf("about to pop: numBlocks=%d and assoc=%d\n", num_blocks, dcacheAssoc);
     pop_block(&(dcache[addr_index]));
-    printf("pop successful\n");
+    //printf("pop successful\n");
     insert_block(&(dcache[addr_index]), addr_tag, dcacheAssoc);
-    printf("pop and insert successful\n");
+    //printf("pop and insert successful\n");
   }
   
-  printf("yessir\n");
+  //printf("yessir\n");
   return (l2_time + dcacheHitTime);
 }
 
@@ -440,26 +484,26 @@ l2cache_access(uint32_t addr)
   int num_blocks = l2cache[addr_index].count;
 
   // check if we go straight to l2
-  printf("nothing: go to main memory\n");
+  //printf("nothing: go to main memory\n");
   if(l2cacheSets == 0)
     return memspeed;
   
   // we know for sure icache is being ref now
   l2cacheRefs += 1;
 
-  printf("search for hit in l2\n");
+  //printf("search for hit in l2\n");
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
-      printf("about to return from l2\n");
+      //printf("about to return from l2\n");
       return l2cacheHitTime;
     } else{
       temp = temp->next; // update for checking the next recent block
-      printf("successfully updated\n");
+      //printf("successfully updated\n");
     }
   }
 
-  printf("l2 gonna miss\n");
+  //printf("l2 gonna miss\n");
   l2cacheMisses += 1;
   l2cachePenalties += memspeed; // penalty is a subset of access time
 
@@ -479,12 +523,12 @@ l2cache_access(uint32_t addr)
       printf("evict fron dcache-inclusive\n");
       searchAndEvict(dittoAddr, 1);
       // evict from icache the LRU from l2
-      printf("evict fron icache-inclusive\n");
+      printf("evict fron icache-inclusive for index %u\n", addr_index);
       searchAndEvict(dittoAddr, 0);
       // evict from l2cache AND insert to l2cache
       pop_block(&(l2cache[addr_index]));
       insert_block(&(l2cache[addr_index]), addr_tag, l2cacheAssoc);
-      printf("pop and insert done safely\n");
+      //printf("pop and insert done safely\n");
     } else{
       // otherwise just perform LRU on L2 cache
       pop_block(&(l2cache[addr_index]));
