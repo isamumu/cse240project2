@@ -134,8 +134,6 @@ void pop_block(Set *set){
     printf("%u\n", tempo->tag);
     tempo = tempo->next;
   }
-  if(set->back == NULL)
-    printf("holla\n");
   
   printf("this is the front: %u\n", set->front->tag);
   printf("this is the back: %u\n", set->back->tag);
@@ -151,9 +149,6 @@ void pop_block(Set *set){
   
   free(temp);
 
-  
-  if(set->back == NULL)
-    printf("holla\n");
   set->count -= 1;
 
   printf("after pop:\n");
@@ -173,122 +168,29 @@ void insert_block(Set *set, uint32_t tag, uint32_t assoc){
   //printf("created block entity\n");
   temp->next = set->front;
 
-  Block *tempo = set->front;
-  printf("before insert:\n");
-  for(int i = 0; i < set->count; i++){
-    printf("%u\n", tempo->tag);
-    tempo = tempo->next;
-  }
-
-  //printf("temp: %u\n", temp->tag);
-  // printf("insertion completed\n");
   if(set->back == NULL){
     set->front = temp;
-    set->back = temp;
-    //printf("added brand new!!!!!!! %u\n", set->front->tag);
+    set->back = set->front;
   } else{
     set->front->prev = temp;
     set->front = temp;
-    //printf("add on - - - - - \n");
-    //printf("new back is: %u\n", set->back->tag);
+    
   }
 
   if(set->count < assoc)
     set->count += 1;
 
-  tempo = set->front;
-  printf("new with added:\n");
+  Block *tempo = set->front;
+  // printf("ok\n");
+  printf("after insert:\n");
   for(int i = 0; i < set->count; i++){
     printf("%u\n", tempo->tag);
     tempo = tempo->next;
   }
-  // printf("incremented counter\n");
-}
-
-// TODO: consider the edge cases of the back node update
-void evictTarget(Set *set, uint32_t tag){
-  Block *temp = set->front;
-  Block *prev = NULL;
   
-  // if front or very back
-  if(set->front->tag == tag){
-    printf("single element\n");
-    if(set->count == 1){
-      set->front == NULL;
-      set->back == NULL;
-    } else{
-      set->front = temp->next;
-      set->front->prev = NULL;
-    } 
-    //printf("single element evicted = = = = = = = =\n");
-    free(temp);
-    return;
-  } else if(set->back->tag == tag){
-    printf("here\n");
-    Block *dummy; 
-    dummy = set->back;
-    set->back = set->back->prev;
-    set->back->next = NULL;
-    free(dummy);
-    return;
-  }
-  // if middle
-  printf("no here\n");
-  while(temp != NULL){
-    if(temp->tag == tag)
-      break;
-    prev = temp;
-    temp = temp->next;
-  }
+  printf("this is the front: %u\n", set->front->tag);
+  printf("this is the back: %u\n", set->back->tag);
 
-  // means nothing was found to evict in L1
-  if(temp == NULL)
-    return;
-  
-  // at this point something was found
-  
-  prev->next = temp->next;
-  free(temp);
-}
-
-// 1: dcache 0: icache
-void searchAndEvict(uint32_t addr, int isData){
-  uint32_t addr_tag;
-  uint32_t addr_index;
-  int num_blocks;
-  Block *temp;
-
-  if(isData){
-    addr_tag = addr >> (dIndexNum + offsetBitsNum);
-    addr_index = (addr >> offsetBitsNum) & dIndexFilter;
-    num_blocks = dcache[addr_index].count;
-    temp = dcache[addr_index].front;
-
-    for(int i = 0; i < num_blocks; i++){
-      if(temp->tag == addr_tag){
-        // evict from dcache
-        evictTarget(&(dcache[i]), addr_tag);
-        dcache[i].count -= 1;
-      } else{
-        temp = temp->next; // update for checking the next recent block
-      }
-    }
-  } else{
-    addr_tag = addr >> (iIndexNum + offsetBitsNum);
-    addr_index = (addr >> offsetBitsNum) & iIndexFilter;
-    num_blocks = icache[addr_index].count;
-    temp = icache[addr_index].front;
-
-    for(int i = 0; i < num_blocks; i++){
-      if(temp->tag == addr_tag){
-        // evict from icache
-        evictTarget(&(icache[i]), addr_tag);
-        icache[i].count -= 1;
-      } else{
-        temp = temp->next; // update for checking the next recent block
-      }
-    }
-  }
 }
 
 // Initialize the Cache Hierarchy
@@ -398,8 +300,10 @@ icache_access(uint32_t addr)
   // printf("insert or LRU the blocks\n");
   // insert the block to the set if it is not full
   if(num_blocks < icacheAssoc){
+    printf("about to pop icache index = %u\n", addr_index);
     insert_block(&(icache[addr_index]), addr_tag, icacheAssoc);
   } else{ // if full, pop back and insert to front
+    printf("about to pop icache index = %u\n", addr_index);
     pop_block(&(icache[addr_index]));
     insert_block(&(icache[addr_index]), addr_tag, icacheAssoc);
   }
@@ -456,10 +360,12 @@ dcache_access(uint32_t addr)
   // insert the block to the set if it is not full
   if(num_blocks < dcacheAssoc){
     //printf("about to insert a block at index %u\n", addr_index);
+    printf("about to insert dcache index = %u\n", addr_index);
     insert_block(&(dcache[addr_index]), addr_tag, dcacheAssoc);
     //printf("dcache insertion successful at index %u\n", addr_index);
   } else{ // if full, pop back and insert to front
     //printf("about to pop: numBlocks=%d and assoc=%d\n", num_blocks, dcacheAssoc);
+    printf("about to pop dcache index = %u\n", addr_index);
     pop_block(&(dcache[addr_index]));
     //printf("pop successful\n");
     insert_block(&(dcache[addr_index]), addr_tag, dcacheAssoc);
@@ -513,23 +419,6 @@ l2cache_access(uint32_t addr)
     insert_block(&(l2cache[addr_index]), addr_tag, l2cacheAssoc);
     // printf("l2 insert done safely\n");
   } else{
-    if(inclusive){
-      // target to evict 
-      Block *target = l2cache[addr_index].back; // note that back of the L2 is a different address
-      uint32_t tag = target->tag;
-      uint32_t dittoAddr = ((tag << addr_index) + addr_index) << offsetBitsNum; // reconstructed address
-
-      // evict from dcache the LRU from l2
-      printf("evict fron dcache-inclusive\n");
-      searchAndEvict(dittoAddr, 1);
-      // evict from icache the LRU from l2
-      printf("evict fron icache-inclusive for index %u\n", addr_index);
-      searchAndEvict(dittoAddr, 0);
-      // evict from l2cache AND insert to l2cache
-      pop_block(&(l2cache[addr_index]));
-      insert_block(&(l2cache[addr_index]), addr_tag, l2cacheAssoc);
-      //printf("pop and insert done safely\n");
-    } else{
       // otherwise just perform LRU on L2 cache
       pop_block(&(l2cache[addr_index]));
       insert_block(&(l2cache[addr_index]), addr_tag, l2cacheAssoc);
