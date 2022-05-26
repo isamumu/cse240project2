@@ -141,6 +141,46 @@ void pop_block(Set *set){
   set->count -= 1;
 }
 
+// helper: put block to the end of the set
+void moveFront(Set *set, uint32_t tag){
+  Block *temp = set->front;
+
+  // if it is at the front do nothing
+  if(temp->tag == tag){
+    return;
+  } else if(set->back->tag == tag){
+    Block *prevLast = set->back->prev;
+    Block *last = set->back;
+
+    // update last previous for back
+    prevLast->next = NULL;
+
+    last->prev = NULL;
+    last->next = temp;
+    temp->prev = last;
+
+    // update front and back
+    set->front = last;
+    set->back = prevLast;
+  } else{
+    for(int i = 0; i < set->count; i++){
+      if(temp->tag == tag){
+        Block *prev = temp->prev;
+        Block *next = temp->next;
+        prev->next = next;
+        next->prev = prev;
+
+        temp->prev = NULL;
+        temp->next = set->front;
+        set->front->prev = temp;
+        set->front = temp;
+        return;
+      }
+      temp = temp->next;
+    }
+  }
+
+}
 // helper: insert a block to the front
 void insert_block(Set *set, uint32_t tag, uint32_t assoc){
 
@@ -184,13 +224,13 @@ init_cache()
   l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
   // printf("finished allocating sets\n");
 
-  offsetBitsNum = (uint32_t)log2(blocksize);
+  offsetBitsNum = log2(blocksize);
   // handle icache bits
-  iIndexNum = (uint32_t)log2(icacheSets);
+  iIndexNum = log2(icacheSets);
   iIndexFilter = ((1 << iIndexNum) - 1);
 
   // handle dcache bits
-  dIndexNum = (uint32_t)log2(dcacheSets);
+  dIndexNum = log2(dcacheSets);
   dIndexFilter = ((1 << dIndexNum) - 1);
  
   // handle l2cache bits
@@ -243,6 +283,7 @@ icache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      moveFront(&(icache[addr_index]), addr_tag);
       return icacheHitTime;
     } else{
       temp = temp->next; // update for checking the next recent block
@@ -289,6 +330,7 @@ dcache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      moveFront(&(dcache[addr_index]), addr_tag);
       return dcacheHitTime;
     } else{
       temp = temp->next; // update for checking the next recent block
@@ -336,6 +378,7 @@ l2cache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      moveFront(&(l2cache[addr_index]), addr_tag);
       return l2cacheHitTime;
     } else{
       temp = temp->next; // update for checking the next recent block
