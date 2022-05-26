@@ -130,10 +130,10 @@ void pop_block(Set *set){
   Block *tempo = set->front;
   // printf("ok\n");
   //printf("before pop:\n");
-  for(int i = 0; i < set->count; i++){
-    printf("%u\n", tempo->tag);
-    tempo = tempo->next;
-  }
+  // for(int i = 0; i < set->count; i++){
+  //   printf("%u\n", tempo->tag);
+  //   tempo = tempo->next;
+  // }
   
   //printf("this is the front: %u\n", set->front->tag);
   //printf("this is the back: %u\n", set->back->tag);
