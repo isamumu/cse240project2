@@ -233,7 +233,7 @@ init_cache()
   dIndexFilter = ((1 << dIndexNum) - 1);
  
   // handle l2cache bits
-  l2IndexNum = (uint32_t)log2(l2cacheSets);
+  l2IndexNum = log2(l2cacheSets);
   l2IndexFilter = ((1 << l2IndexNum) - 1);
 
   // init icache
