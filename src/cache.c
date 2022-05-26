@@ -126,17 +126,6 @@ void pop_block(Set *set){
   // if only one is there set both front and back to null
   if(set->front == set->back)
     set->front = NULL;
-
-  Block *tempo = set->front;
-  // printf("ok\n");
-  //printf("before pop:\n");
-  // for(int i = 0; i < set->count; i++){
-  //   printf("%u\n", tempo->tag);
-  //   tempo = tempo->next;
-  // }
-  
-  //printf("this is the front: %u\n", set->front->tag);
-  //printf("this is the back: %u\n", set->back->tag);
   
   Block *prev= set->back->prev;
   //printf("uh ok\n");
@@ -150,15 +139,6 @@ void pop_block(Set *set){
   free(temp);
 
   set->count -= 1;
-
-  //printf("after pop:\n");
-  tempo = set->front;
-  for(int i = 0; i < set->count; i++){
-    //printf("no problem: ");
-    //printf("%u\n", tempo->tag);
-    tempo = tempo->next;
-  }
-  //printf("done popping\n");
 }
 
 // helper: insert a block to the front
@@ -179,14 +159,6 @@ void insert_block(Set *set, uint32_t tag, uint32_t assoc){
 
   if(set->count < assoc)
     set->count += 1;
-
-  Block *tempo = set->front;
-  // printf("ok\n");
-  //printf("after insert:\n");
-  for(int i = 0; i < set->count; i++){
-    printf("%u\n", tempo->tag);
-    tempo = tempo->next;
-  }
   //printf("this is the front: %u\n", set->front->tag);
   //printf("this is the back: %u\n", set->back->tag);
 }
