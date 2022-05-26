@@ -223,7 +223,9 @@ init_cache()
   dcache = (Set*)malloc(sizeof(Set)*dcacheSets);
   l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
 
+  // compute number of bits for block offset
   offsetBitsNum = log2(blocksize);
+
   // handle icache bits
   iIndexNum = log2(icacheSets);
   iIndexFilter = ((1 << iIndexNum) - 1);
@@ -238,23 +240,23 @@ init_cache()
 
   // init icache
   for(int i = 0; i < icacheSets; i++){
-    icache[i].count = 0;
     icache[i].front = NULL;
     icache[i].back = NULL;
+    icache[i].count = 0;
   }
 
   // init dcache
   for(int i = 0; i < dcacheSets; i++){
-    dcache[i].count = 0;
     dcache[i].front = NULL;
     dcache[i].back = NULL;
+    dcache[i].count = 0;
   }
 
   // init l2cache
   for(int i = 0; i < l2cacheSets; i++){
-    l2cache[i].count = 0;
     l2cache[i].front = NULL;
     l2cache[i].back = NULL;
+    l2cache[i].count = 0;
   }
 }
 
