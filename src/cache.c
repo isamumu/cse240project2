@@ -145,7 +145,6 @@ void pop_block(Set *set){
 void insert_block(Set *set, uint32_t tag, uint32_t assoc){
 
   Block *temp = createBlock(tag);
-  //printf("created block entity\n");
   temp->next = set->front;
 
   if(set->back == NULL){
@@ -154,13 +153,10 @@ void insert_block(Set *set, uint32_t tag, uint32_t assoc){
   } else{
     set->front->prev = temp;
     set->front = temp;
-    
   }
 
   if(set->count < assoc)
     set->count += 1;
-  //printf("this is the front: %u\n", set->front->tag);
-  //printf("this is the back: %u\n", set->back->tag);
 }
 
 // Initialize the Cache Hierarchy
@@ -188,17 +184,17 @@ init_cache()
   l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
   // printf("finished allocating sets\n");
 
-  offsetBitsNum = log2(blocksize);
+  offsetBitsNum = (uint32_t)log2(blocksize);
   // handle icache bits
-  iIndexNum = log2(icacheSets);
+  iIndexNum = (uint32_t)log2(icacheSets);
   iIndexFilter = ((1 << iIndexNum) - 1);
 
   // handle dcache bits
-  dIndexNum = log2(dcacheSets);
+  dIndexNum = (uint32_t)log2(dcacheSets);
   dIndexFilter = ((1 << dIndexNum) - 1);
  
   // handle l2cache bits
-  l2IndexNum = log2(l2cacheSets);
+  l2IndexNum = (uint32_t)log2(l2cacheSets);
   l2IndexFilter = ((1 << l2IndexNum) - 1);
 
   // init icache
@@ -334,7 +330,7 @@ l2cache_access(uint32_t addr)
   if(l2cacheSets == 0)
     return memspeed;
   
-  // we know for sure icache is being ref now
+  // we know for sure l2cache is being ref now
   l2cacheRefs += 1;
 
   // loop through the cache related to the index AND look for a hit
