@@ -122,17 +122,14 @@ void pop_block(Set *set){
   if(set->back == NULL)
     return;
 
-  //printf("yes\n");
   // if only one is there set both front and back to null
   if(set->front == set->back)
     set->front = NULL;
   
   Block *prev= set->back->prev;
-  //printf("uh ok\n");
   Block *temp = set->back;
   set->back = prev;
 
-  //printf("cool\n");
   if(set->back)
     set->back->next = NULL;
   
@@ -149,34 +146,38 @@ void moveFront(Set *set, uint32_t tag){
   if(temp->tag == tag){
     return;
   } else if(set->back->tag == tag){
+    // if the element is at the back, move to the front
     Block *prevLast = set->back->prev;
     Block *last = set->back;
 
     // update last previous for back
     prevLast->next = NULL;
 
-    last->prev = NULL;
-    last->next = temp;
-    temp->prev = last;
+    last->prev = NULL; // link current pevious last to null as new back
+    last->next = temp; // link current last to front
+    temp->prev = last; // link both ways
 
     // update front and back
-    set->front = last;
-    set->back = prevLast;
+    set->front = last; // update new front
+    set->back = prevLast; // update new back
   } else{
     for(int i = 0; i < set->count; i++){
       if(temp->tag == tag){
-        Block *prev = temp->prev;
+        // define nodes before and after target
+        Block *prev = temp->prev; 
         Block *next = temp->next;
+
+        // link previous and next nodes
         prev->next = next;
         next->prev = prev;
 
-        temp->prev = NULL;
-        temp->next = set->front;
-        set->front->prev = temp;
-        set->front = temp;
-        return;
+        temp->prev = NULL; // make sure prev of target is null
+        temp->next = set->front; // set target next to current front
+        set->front->prev = temp; // link both ways
+        set->front = temp; // set new front
+        return; // done
       }
-      temp = temp->next;
+      temp = temp->next; // update temp
     }
   }
 
@@ -218,11 +219,9 @@ init_cache()
   //
   //TODO: Initialize Cache Simulator Data Structures
   //
-  // printf("allocating sets\n");
   icache = (Set*)malloc(sizeof(Set)*icacheSets);
   dcache = (Set*)malloc(sizeof(Set)*dcacheSets);
   l2cache = (Set*)malloc(sizeof(Set)*l2cacheSets);
-  // printf("finished allocating sets\n");
 
   offsetBitsNum = log2(blocksize);
   // handle icache bits
@@ -238,7 +237,6 @@ init_cache()
   l2IndexFilter = ((1 << l2IndexNum) - 1);
 
   // init icache
-  // printf("init icache\n");
   for(int i = 0; i < icacheSets; i++){
     icache[i].count = 0;
     icache[i].front = NULL;
@@ -246,7 +244,6 @@ init_cache()
   }
 
   // init dcache
-  // printf("init dcache\n");
   for(int i = 0; i < dcacheSets; i++){
     dcache[i].count = 0;
     dcache[i].front = NULL;
@@ -254,7 +251,6 @@ init_cache()
   }
 
   // init l2cache
-  // printf("init l2cache\n");
   for(int i = 0; i < l2cacheSets; i++){
     l2cache[i].count = 0;
     l2cache[i].front = NULL;
@@ -283,6 +279,7 @@ icache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      // bug fix: move element to front of list (LRU) after hit
       moveFront(&(icache[addr_index]), addr_tag);
       return icacheHitTime;
     } else{
@@ -298,7 +295,6 @@ icache_access(uint32_t addr)
 
   // insert the block to the set if it is not full
   if(num_blocks < icacheAssoc){
-    //printf("about to pop icache index = %u\n", addr_index);
     insert_block(&(icache[addr_index]), addr_tag, icacheAssoc);
   } else{ // if full, pop back and insert to front
     pop_block(&(icache[addr_index]));
@@ -330,6 +326,7 @@ dcache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      // bug fix: move element to front of list (LRU) after hit
       moveFront(&(dcache[addr_index]), addr_tag);
       return dcacheHitTime;
     } else{
@@ -351,7 +348,6 @@ dcache_access(uint32_t addr)
     insert_block(&(dcache[addr_index]), addr_tag, dcacheAssoc);
   }
   
-  //printf("yessir\n");
   return (l2_time + dcacheHitTime);
 }
 
@@ -378,6 +374,7 @@ l2cache_access(uint32_t addr)
   // loop through the cache related to the index AND look for a hit
   for(int i = 0; i < num_blocks; i++){
     if(temp->tag == addr_tag){
+      // bug fix: move element to front of list (LRU) after hit
       moveFront(&(l2cache[addr_index]), addr_tag);
       return l2cacheHitTime;
     } else{
