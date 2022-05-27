@@ -107,15 +107,6 @@ uint16_t l2IndexNum;
 uint16_t offsetBitsNum;
 
 // add new elements to the front, add old ones to the back
-// helper: create a block for a set (if set isn't full)
-Block* createBlock(uint32_t tag){
-  Block *newBlock = (Block*)malloc(sizeof(Block));
-  newBlock->next = NULL;
-  newBlock->prev = NULL;
-  newBlock->tag = tag;
-
-  return newBlock;
-}
 
 // helper: remove a back block from queue
 void pop_block(Set *set){
@@ -185,8 +176,10 @@ void moveFront(Set *set, uint32_t tag){
 // helper: insert a block to the front
 void insert_block(Set *set, uint32_t tag, uint32_t assoc){
 
-  Block *temp = createBlock(tag);
+  Block *temp = (Block*)malloc(sizeof(Block));
   temp->next = set->front;
+  temp->prev = NULL;
+  temp->tag = tag;
 
   if(set->back == NULL){
     set->front = temp;
